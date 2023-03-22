@@ -1,0 +1,95 @@
+# bluetooth server - client 파이선 사용 
+
+# 여기서 오류가 발생할 수 있다고 제공하고 있음 , 라이브러리 미설치 
+import smbus
+import time
+import threading
+import RPi.GPIO as GPIO
+from bluetooth import*
+
+server_address = "98:DA:60:02:D0:10"
+ultrasonic_sensor_address = "98:DA:60:02:BB:45"
+audio_interface_address = "00:11:22:33:44:55" // 블루투스 오디오
+video_interface_address = "00:11:22:33:44:55" // 카메라 사용해서 작성하려고 하는 것 
+boozer_and_lasting_socket_address = "00:11:22:33:44:55" //atmega 128 사용
+port = 1
+
+ # Set up the interrupt pin as an output
+def setup_interrupt_pin(pin):
+  GPIO.setmode(GPIO.BCM)
+  GPIO.setup(pin, GPIO.OUT)
+
+# 여기는 약간 , 초기화 과정 
+def setup(address, port):
+    server_socket = BluetoothSocket(RFCOMM) #이 코드는 서버에서 사용하려고 설정되는 것 , SERVER 주소로 사용되는 값을 매기려고 하는 것이 아니다. 
+    server_socket.bind((address, port))
+    server_socket.listen(1)
+    bus = smbus.SMBus(1) //초기화 
+    interrupt_pin = 2
+    setup_interrupt_pin(interrupt_pin)
+    ultrasonic_sensor_socket = BluetoothSocket(RFCOMM)
+    ultrasonic_sensor_socket.connect((ultrasonic_sensor_address, port))
+    audio_interface_socket = BluetoothSocket(RFCOMM)
+    audio_interface_socket.connect((audio_interface_address, port))
+    video_interface_socket = BluetoothSocket(RFCOMM)
+    video_interface_socket.connect((video_interface_address, port))
+    boozer_and_lasting_socket = bluetoothSocket(RFCOMM)
+    boozer_and_lasting_socket.connect((boozer_and_lasting_address,port))
+    return server_socket, ultrasonic_sensor_socket, audio_interface_socket, video_interface_socket, bus , boozer_and_lasting_socket
+
+
+server_socket, ultrasonic_sensor_socket, audio_interface_socket, video_interface_socket, bus , boozer_and_lasting_socket = setup(server_address, port)
+
+
+def server(server_socket, interrupt_pin):
+    while True:
+        client_socket, address = server_socket.accept()
+        print(f"Accepted connection from {address}")
+        while True:
+            data = client_socket.recv(1024).decode()
+            if data == "object detected":
+                GPIO.output(interrupt_pin, True) # trigger the interrupt
+                time.sleep(1) # wait for 1 second #1뒤에 꺼지는 코드 
+                GPIO.output(interrupt_pin, False) # turn off the interrupt    
+            print(f"Received: {data}")
+            if not data:
+                break
+        client_socket.close()
+    server_socket.close()
+# RFCOMM은 재설정이 필요한 함수이다. 
+def client(server_address, ultrasonic_sensor_address, audio_interface_address, video_interface_address, port, interrupt_pin):
+    client_socket = BluetoothSocket(RFCOMM)
+    ultrasonic_sensor_socket = BluetoothSocket(RFCOMM)
+    audio_interface_socket  = BluetoothSocket(RFCOMM)
+    video_interface_socket = BluetoothSocket(RFCOMM)
+    boozer_and_lasting_socket = BluetoothSocket(RFCOMM)
+    client_socket.connect((server_address, port))//부저 
+    ultrasonic_sensor_socket.connect((ultrasonic_sensor_address, port))//초음파센서
+    audio_interface_socket.connect((audio_interface_address, port))//오디오인터페이스
+    video_interface_socket.connect((video_interface_address, port))//비디오 인터페이스
+    boozer_and_lasting_socket.connect((boozer_and_lasting_address,port))//ATmega 128 보드통제 
+    while True:
+        message = input("Enter message to send: ")
+        if message == "q":
+            break
+        client_socket.send(message.encode())
+        ultrasonic_sensor_socket.send(message.encode())
+        audio_interface_socket.send(message.encode())
+        video_interface_socket.send(message.encode())
+        boozer_and_lasting_socket.send(message.encode())
+client_socket.close()
+ultrasonic_sensor_socket.close()
+audio_interface_socket.close()
+video_interface_socket.close()
+boozer_and_lasting_socket.close()
+
+client_socket = setup(server_address , port)
+ultrasonic_sensor_socket = setup(ultrasonic_sensor_address, port)
+audio_interface_socket = setup(audio_interface_address , port)
+video_interface_socket = setup(video_interface_address , port)
+boozer_and_lasting_socket = setup(boozer_and_lasting_address,port)
+
+t1 = threading.Thread(target=server, args=(server_socket, interrupt_pin))
+t2 = threading.Thread(target=client, args=(server_address, port , ultrasonic_sensor_address인, audio_interface_address, video_interface_address,boozer_and_lasting_address ,interrupt_pin))
+t1.start()
+t2.start()
