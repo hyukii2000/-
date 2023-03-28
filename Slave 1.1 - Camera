@@ -1,0 +1,33 @@
+라즈베리파이와 카메라를 블루투스로 연결하는 python
+
+python
+import bluetooth
+import picamera
+import time
+
+server_sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+port = 1
+server_sock.bind(("", port))
+server_sock.listen(1)
+
+client_sock, address = server_sock.accept()
+print("Accepted connection from", address)
+
+camera = picamera.PiCamera()
+camera.resolution = (640, 480)
+camera.framerate = 30
+time.sleep(2)  # 카메라 초기화 시간
+
+while True:
+    data = client_sock.recv(1024)
+    if not data:
+        break
+
+    camera.capture('image.jpg')
+    with open('image.jpg', 'rb') as f:
+        image_data = f.read()
+    client_sock.sendall(image_data)
+
+client_sock.close()
+server_sock.close()
+```
