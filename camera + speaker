@@ -1,0 +1,33 @@
+// 블루투스 스피커를 연결하기 위해 먼저 블루투스 모듈을 설치합니다.
+sudo apt-get install bluetooth
+sudo apt-get install bluez
+sudo apt-get install python-bluez
+
+// 블루투스 스피커 스캔
+sudo hcitool scan
+
+// 블루투스 카메라 모듈 활성화
+sudo raspi-config  // 이후, Interfacing Options > Camera > Enable 을 선택하고 재부팅
+
+// 다음으로 파이썬 코드에서 블루투스 모듈을 import하고 스피커를 검색합니다.
+import bluetooth
+
+nearby_devices = bluetooth.discover_devices()
+for device in nearby_devices:
+    print(device)
+    
+// 검색된 스피커의 MAC 주소를 사용하여 연결합니다.
+target_device = "스피커 MAC 주소"
+port = 1
+sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+sock.connect((target_device, port))
+sock.send("Hello World!")
+sock.close()
+
+// 다음으로 파이썬 코드에서 picamera 라이브러리를 import하여 카메라를 제어합니다.
+from picamera import PiCamera
+
+camera = PiCamera()
+camera.start_preview()
+camera.capture('image.jpg')
+camera.stop_preview()
