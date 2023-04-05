@@ -43,7 +43,7 @@ for _ in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
 // picamera 라이브러리를 사용하여 카메라 모듈 제어, socket 라이브러리를 사용하여 블루투스 연결 설정, 그리고 for 루프 안에서 카메라로부터 받은 영상 스트림을 블루투스로 전송.
 
 # 코드 실행
-python3 [파일명].py
+python3 [파일명].py // 파일명 지어서 [파일명] 안에 넣으면 실행
 
 # 블루투스 서버와 클라이언트 코드 작성하기
 
