@@ -83,6 +83,7 @@ while True:
 
 // 클라이언트 연결 종료
 client_socket.close()
+
 // 서버 종료
 server_socket.close()
 
