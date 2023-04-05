@@ -1,0 +1,115 @@
+# 블루투스 모듈, 라이브러리 설치
+sudo apt-get update
+sudo apt-get install python3-picamera
+sudo apt-get install python3-bluez
+sudo apt-get install python3-opencv
+sudo apt-get install bluetooth libbluetooth-dev
+sudo pip3 install pybluez
+
+sudo hcitool scan // 블루투스 카메라 MAC 주소 찾기
+sudo rfcomm connect hci0 [블루투스 카메라 MAC 주소] 1 // 블루투스 카메라 연결
+
+# 영상 스트리밍 연결
+import io
+import socket
+import struct
+import time
+import picamera
+
+// 소켓 연결
+client_socket = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_STREAM, socket.BTPROTO_RFCOMM)
+client_socket.connect(("블루투스 카메라 MAC 주소", 1))
+
+// 카메라 준비
+camera = picamera.PiCamera()
+camera.resolution = (640, 480)
+camera.framerate = 24
+time.sleep(1)  # 카메라 초기화 시간
+
+// 영상 스트리밍
+stream = io.BytesIO()
+for _ in camera.capture_continuous(stream, 'jpeg', use_video_port=True):
+    try:
+        // 스트림 내용을 전송
+        client_socket.sendall(struct.pack('<L', stream.tell()))
+        client_socket.sendall(stream.getvalue())
+        stream.seek(0)
+        stream.truncate()
+    except:
+        // 전송 실패 시 연결 종료
+        client_socket.close()
+        break
+        
+// picamera 라이브러리를 사용하여 카메라 모듈 제어, socket 라이브러리를 사용하여 블루투스 연결 설정, 그리고 for 루프 안에서 카메라로부터 받은 영상 스트림을 블루투스로 전송.
+
+# 코드 실행
+python3 [파일명].py
+
+# 블루투스 서버와 클라이언트 코드 작성하기
+
+블루투스 서버: 영상을 전송하는 쪽
+블루투스 클라이언트: 영상을 수신하는 쪽
+
+- bluetooth_server.py
+import bluetooth
+import cv2
+import numpy as np
+
+// 블루투스 서버 생성
+server_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+port = 1
+server_socket.bind(("", port))
+server_socket.listen(1)
+
+// 블루투스 클라이언트 연결 대기
+client_socket, client_info = server_socket.accept()
+
+// 카메라 초기화
+camera = cv2.VideoCapture(0)
+
+// 영상 전송
+while True:
+    # 영상 촬영
+    ret, frame = camera.read()
+    # JPEG 인코딩
+    _, encoded = cv2.imencode('.jpg', frame)
+    # 바이트 스트림 변환
+    data = np.array(encoded).tostring()
+    # 데이터 길이 전송
+    length = len(data)
+    client_socket.sendall(str(length).encode().ljust(16))
+    # 데이터 전송
+    client_socket.sendall(data)
+
+// 클라이언트 연결 종료
+client_socket.close()
+// 서버 종료
+server_socket.close()
+
+- bluetooth_client.py
+import bluetooth
+import cv2
+import numpy as np
+
+// 블루투스 클라이언트 생성
+client_socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+port = 1
+client_socket.connect(("서버 MAC 주소", port))
+
+// 영상 수신
+while True:
+    # 데이터 길이 수신
+    length = int(client_socket.recv(16).strip())
+    # 데이터 수신
+    data = b''
+    while len(data) < length:
+        packet = client_socket.recv(length - len(data))
+        if not packet:
+            break
+        data += packet
+
+
+
+
+
+
