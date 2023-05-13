@@ -1,0 +1,57 @@
+import os
+import cv2
+import time
+import bluetooth
+import subprocess
+
+# VLC 실행 명령어
+vlc_command = "cvlc v4l2:///dev/video0 --sout '#transcode{vcodec=mjpg}:standard{access=http,mux=mpjpeg,dst=:8080/}' --no-sout-all --sout-keep"
+
+# 블루투스 서버 주소
+server_address = "00:00:00:00:00:00"
+port = 1
+
+# 얼굴 인식을 위한 Haar Cascades
+face_cascade = cv2.CascadeClassifier('/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml')
+
+# VLC player 실행
+subprocess.Popen(vlc_command, shell=True)
+
+# 블루투스 서버 연결
+sock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
+sock.connect((server_address, port))
+
+while True:
+    # 스트리밍 비디오에서 프레임 읽기
+    cap = cv2.VideoCapture('http://localhost:8080/stream')
+    ret, frame = cap.read()
+    
+    # 얼굴 검출
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.5, minNeighbors=5)
+    
+    # 얼굴이 있을 경우 사진 촬영
+    if len(faces) > 0:
+        filename = "face_" + str(int(time.time())) + ".jpg"
+        cv2.imwrite(filename, frame)
+        print("Captured:", filename)
+        
+        # 블루투스로 사진 전송
+        with open(filename, 'rb') as f:
+            data = f.read()
+            sock.sendall(data)
+        print("Sent:", filename)
+    
+    # 비디오 캡처 및 표시
+    cv2.imshow('Video', frame)
+    
+    # 키 입력 대기 및 종료
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# 블루투스 연결 종료
+sock.close()
+
+# 리소스 해제
+cap.release()
+cv2.destroyAllWindows()
