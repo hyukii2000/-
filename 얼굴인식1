@@ -1,0 +1,91 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+#include <iostream>
+#include <cstdlib>
+#include <cstdio>
+#include <cstring>
+
+using namespace cv;
+using namespace std;
+
+int main()
+{
+    // VLC Player 실행 명령어 설정
+    const char* vlcCmd = "cvlc -vvv v4l2:///dev/video0 --no-audio --demux=rawvideo --rawvid-fps=30 --sout='#rtp{sdp=rtsp://:8554/}' :demux=h264";
+
+    // VLC Player 프로세스 실행
+    system(vlcCmd);
+
+    // OpenCV 비디오 캡처 초기화
+    VideoCapture cap;
+    cap.open("rtsp://localhost:8554/");
+
+    // 얼굴 인식을 위한 Haar cascade 로드
+    CascadeClassifier faceCascade;
+    faceCascade.load("haarcascade_frontalface_default.xml");
+
+    if (!cap.isOpened() || faceCascade.empty())
+    {
+        cout << "비디오 캡처 또는 Haar cascade를 로드할 수 없습니다." << endl;
+        return -1;
+    }
+
+    // 사진 촬영용 변수 설정
+    bool takePhoto = false;
+    int photoCount = 0;
+
+    while (true)
+    {
+        Mat frame;
+        cap.read(frame);
+
+        if (frame.empty())
+        {
+            cout << "비디오 프레임을 읽을 수 없습니다." << endl;
+            break;
+        }
+
+        // 얼굴 인식
+        vector<Rect> faces;
+        Mat frameGray;
+        cvtColor(frame, frameGray, COLOR_BGR2GRAY);
+        equalizeHist(frameGray, frameGray);
+        faceCascade.detectMultiScale(frameGray, faces, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
+
+        // 인식된 얼굴 주위에 사각형 그리기
+        for (size_t i = 0; i < faces.size(); i++)
+        {
+            rectangle(frame, faces[i], Scalar(0, 255, 0), 2);
+        }
+
+        // 촬영 모드일 때 사진 촬영
+        if (takePhoto && faces.size() > 0)
+        {
+            string filename = "photo" + to_string(photoCount) + ".jpg";
+            imwrite(filename, frame);
+            photoCount++;
+            takePhoto = false;
+        }
+
+        // 프레임 출력
+        imshow("Face Detection", frame);
+
+        // 키 입력 처리
+        int key = waitKey(1);
+        if (key == 'q' || key == 'Q')
+        {
+            break;
+        }
+        else if (key == 'p' || key == 'P')
+        {
+            takePhoto = true;
+        }
+    }
+
+    // 리소스 정리
+    cap.release();
+    destroyAllWindows();
+
+    return 0;
+}
