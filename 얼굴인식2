@@ -1,0 +1,66 @@
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+
+using namespace cv;
+
+int main()
+{
+    // VLC player를 통한 카메라 스트리밍 초기화
+    // VLC player에서 스트리밍 주소를 얻어와서 사용합니다.
+
+    // OpenCV를 사용하여 카메라 캡처 초기화
+    VideoCapture capture(0);
+
+    if (!capture.isOpened())
+    {
+        // 카메라를 열 수 없는 경우 오류 처리
+        std::cerr << "Failed to open the camera." << std::endl;
+        return -1;
+    }
+
+    // 얼굴 인식을 위한 Haar cascade 분류기 초기화
+    CascadeClassifier faceCascade;
+    if (!faceCascade.load("haarcascade_frontalface_default.xml"))
+    {
+        // Haar cascade 파일을 로드할 수 없는 경우 오류 처리
+        std::cerr << "Failed to load Haar cascade file." << std::endl;
+        return -1;
+    }
+
+    Mat frame;
+    while (true)
+    {
+        // 프레임 캡처
+        capture >> frame;
+
+        // 얼굴 인식을 위해 그레이스케일로 변환
+        Mat grayFrame;
+        cvtColor(frame, grayFrame, COLOR_BGR2GRAY);
+
+        // 얼굴 검출
+        std::vector<Rect> faces;
+        faceCascade.detectMultiScale(grayFrame, faces, 1.1, 2, 0 | CASCADE_SCALE_IMAGE, Size(30, 30));
+
+        // 검출된 얼굴에 사각형 그리기
+        for (const auto& face : faces)
+        {
+            rectangle(frame, face, Scalar(0, 255, 0), 2);
+        }
+
+        // 화면에 프레임 출력
+        imshow("Face Recognition", frame);
+
+        // 'q' 키를 누르면 종료
+        if (waitKey(1) == 'q')
+            break;
+    }
+
+    // 카메라 캡처 해제
+    capture.release();
+
+    // OpenCV 창 종료
+    destroyAllWindows();
+
+    return 0;
+}
