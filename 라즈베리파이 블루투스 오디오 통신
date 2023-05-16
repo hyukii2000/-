@@ -4,7 +4,7 @@ from pygame import mixer
 
 # 시리얼 포트와 블루투스 스피커 MAC 주소 설정
 serial_port = '/dev/ttyACM0'  # 아두이노 시리얼 포트 경로
-bluetooth_speaker_address = '00:00:00:00:00:00'  # 블루투스 스피커 MAC 주소
+bluetooth_speaker_address = 'F0:EF:86:49:5F:00'  # 블루투스 스피커 MAC 주소
 
 # 시리얼 통신 초기화
 ser = serial.Serial(serial_port, 9600, timeout=1)
@@ -13,7 +13,7 @@ ser = serial.Serial(serial_port, 9600, timeout=1)
 mixer.init()
 
 # 블루투스 스피커 설정
-mixer.music.load('sample.mp3')  # 재생할 오디오 파일 경로
+mixer.music.load('home/pi/Downloads/1.wav')  # 재생할 오디오 파일 경로
 
 # 시리얼 통신으로부터 데이터 수신 및 처리
 while True:
