@@ -5,7 +5,7 @@ import time
 from pygame import mixer
 
 # 시리얼 포트와 블루투스 스피커 MAC 주소 설정
-serial_port = '/dev/ttyACM0'  # 아두이노 시리얼 포트 경로
+serial_port = '/dev/rfcomm0'  # 아두이노 시리얼 포트 경로
 baud_rate = 9600
 bluetooth_speaker_address = 'F0:EF:86:49:5F:00'  # 블루투스 스피커 MAC 주소
 
