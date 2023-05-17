@@ -4,6 +4,11 @@ import serial
 import time
 from pygame import mixer
 
+# 시리얼 포트와 블루투스 스피커 MAC 주소 설정
+serial_port = '/dev/ttyACM0'  # 아두이노 시리얼 포트 경로
+baud_rate = 9600
+bluetooth_speaker_address = 'F0:EF:86:49:5F:00'  # 블루투스 스피커 MAC 주소
+
 # SIGINT 핸들러 함수
 def sigint_handler(signal, frame):
     print('SIGINT 신호가 감지되었습니다. 종료하려면 다시 한 번 Ctrl+C를 누르세요.')
@@ -21,19 +26,11 @@ while True:
     except KeyboardInterrupt:
         print('Ctrl+C가 눌렸습니다. 프로그램을 종료합니다.')
         sys.exit(0)
-        
-# 시리얼 포트 설정
-    ser = serial.Serial('/dev/ttyUSB0', 9600)  # 아두이노와의 포트와 보드레이트를 맞춰줍니다.
 
 # 아두이노에 신호를 송신
     ser.write(b'your_signal')  # 아두이노에 보낼 신호를 작성합니다.
     ser.close()  # 시리얼 포트를 닫습니다.
     pass
-
-# 시리얼 포트와 블루투스 스피커 MAC 주소 설정
-serial_port = '/dev/ttyACM0'  # 아두이노 시리얼 포트 경로
-baud_rate = 9600
-bluetooth_speaker_address = 'F0:EF:86:49:5F:00'  # 블루투스 스피커 MAC 주소
 
 # 시리얼 통신 초기화
 ser = serial.Serial(serial_port, baud_rate)
@@ -44,17 +41,9 @@ def send_signal(signal):
     # 아두이노로 신호를 보냅니다.
     ser.write(signal.encode())
 
-# 메인 루프
-while True:
-    # 사용자로부터 신호를 입력받습니다.
-    user_input = input("신호를 입력하세요 (1 또는 0): ")
-
-    # 입력된 신호를 아두이노로 보냅니다.
-    send_signal(user_input)
-
-    # 아두이노로부터 수신된 응답을 출력합니다.
-    response = ser.readline().decode().strip()
-    print("아두이노로부터 수신된 응답:", response)
+# 아두이노로부터 수신된 응답을 출력합니다.
+response = ser.readline().decode().strip()
+print("아두이노로부터 수신된 응답:", response)
 
 # 파이게임 초기화
 mixer.init()
