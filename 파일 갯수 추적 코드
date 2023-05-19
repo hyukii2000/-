@@ -17,7 +17,16 @@ class PhotoCountHandler(FileSystemEventHandler):
             print("새로운 사진이 추가되었습니다. 현재 사진 수:", self.photo_count)
 
             if self.photo_count == expected_photos:
-                # 원하는 프로그램 실행 코드를 여기에 추가합니다.
+
+               # 실행할 Python 파일 경로 설정
+               python_file_path = "/home/pi/facial_recognition"
+
+               # Python 프로그램 실행 명령어
+               command = f"python {train_model.py}"
+
+               # Python 프로그램 실행
+               os.system(command)
+
                 print("12장의 사진이 찍혔습니다. 다음 프로그램을 실행합니다.")
 
 # 저장소 모니터링을 시작하는 함수
