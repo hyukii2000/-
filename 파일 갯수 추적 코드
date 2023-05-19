@@ -1,0 +1,39 @@
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+
+# 저장소 경로와 기대하는 사진 수
+storage_path = "/경로/저장소"
+expected_photos = 12
+
+# 사진 수를 추적하는 이벤트 핸들러 클래스
+class PhotoCountHandler(FileSystemEventHandler):
+    def __init__(self):
+        self.photo_count = 0
+
+    def on_created(self, event):
+        if not event.is_directory and event.src_path.endswith(".jpg"):
+            self.photo_count += 1
+            print("새로운 사진이 추가되었습니다. 현재 사진 수:", self.photo_count)
+
+            if self.photo_count == expected_photos:
+                # 원하는 프로그램 실행 코드를 여기에 추가합니다.
+                print("12장의 사진이 찍혔습니다. 다음 프로그램을 실행합니다.")
+
+# 저장소 모니터링을 시작하는 함수
+def start_monitoring():
+    event_handler = PhotoCountHandler()
+    observer = Observer()
+    observer.schedule(event_handler, storage_path, recursive=False)
+    observer.start()
+    print("사진 수를 모니터링합니다.")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        observer.stop()
+        observer.join()
+
+# 저장소 모니터링 시작
+start_monitoring()
