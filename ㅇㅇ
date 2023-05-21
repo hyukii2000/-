@@ -1,29 +1,28 @@
-# 비디오 스트리밍 함수
-def video_stream():
-    # picamera 초기화
-    camera = picamera.PiCamera()
-    camera.resolution = (640, 480)
-    camera.framerate = 30
-    
-    # 비디오 스트리밍 시작
-    stream = io.BytesIO()
-    for _ in camera.capture_continuous(stream, format='jpeg', use_video_port=True):
-        # 스트림 데이터 읽기
-        frame = stream.getvalue()
-        
-        # 프레임 처리
-        frame = imutils.rotate(frame, angle=90)
-        
-        # VLC 플레이어에 프레임 전송
-        subprocess.Popen(vlc_cmd, stdin=subprocess.PIPE).stdin.write(frame)
-        
-        # 스트림 초기화
-        stream.seek(0)
-        stream.truncate()
+# ImageHub 초기화
+image_hub = imagezmq.ImageHub()
 
-        # 1초 대기
-        time.sleep(1)
+# VLC Player로부터의 연결 요청 대기
+sender = image_hub.zmq_socket.getsockopt_string(socket.SNDHWM)
+image_hub.zmq_socket.setsockopt_string(socket.SNDHWM, sender)
 
-# 비디오 스트리밍 시작
-if __name__ == '__main__':
-    video_stream()
+# 무한 루프
+while True:
+    # 비디오 프레임 읽기
+    frame = vs.read()
+
+    # 프레임을 ImageHub에 전송
+    image_hub.send_image(socket.gethostname(), frame)
+
+    # VLC Player로부터의 연결 수락
+    image_hub.recv_image()
+
+    # 수신한 이미지를 화면에 표시
+    image_hub.send_reply(b'OK')
+
+    # 'q' 키를 누르면 종료
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# 비디오 스트리밍 종료
+vs.stop()
+cv2.destroyAllWindows()
