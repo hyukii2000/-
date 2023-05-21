@@ -1,0 +1,27 @@
+import picamera
+import subprocess
+
+# VLC 스트리밍 명령어
+stream_command = 'vlc -vvv stream:///dev/stdin --sout "#standard{access=http,mux=ts,dst=:8080}"'
+
+# picamera 초기화
+camera = picamera.PiCamera()
+
+# 카메라 설정 (해상도, 프레임 속도 등)
+camera.resolution = (640, 480)
+camera.framerate = 24
+
+# 스트리밍 시작
+stream_process = subprocess.Popen(stream_command, shell=True, stdin=subprocess.PIPE)
+
+try:
+    # 카메라 스트리밍
+    camera.start_recording(stream_process.stdin, format='h264', bitrate=2000000)
+    camera.wait_recording()
+except KeyboardInterrupt:
+    # Ctrl+C를 눌러 스트리밍을 중지합니다.
+    camera.stop_recording()
+finally:
+    # 프로세스를 종료합니다.
+    stream_process.stdin.close()
+    stream_process.wait()
