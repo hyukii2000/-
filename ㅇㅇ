@@ -1,0 +1,21 @@
+# 프레임을 ImageHub를 통해 전송
+    imageHub.send_image(socket.gethostname(), frame)
+
+    # VLC 플레이어로부터 수신된 메시지 받기
+    message = imageHub.recv_message()
+
+    # VLC 플레이어가 연결되었다는 확인 메시지 출력
+    if 'CONNECTED' in message:
+        print('VLC 플레이어와 연결되었습니다.')
+
+        # VLC 플레이어에 스트리밍 시작 메시지 전송
+        sender = imagezmq.ImageSender(connect_to=f'tcp://{receiver_ip}:{receiver_port}')
+        sender.send_message('STREAM_START')
+
+    # VLC 플레이어로부터 스트리밍 종료 메시지를 받으면 루프 종료
+    if 'STREAM_STOP' in message:
+        print('VLC 플레이어와의 연결이 종료되었습니다.')
+        break
+
+# 비디오 스트리밍 종료
+vs.stop()
