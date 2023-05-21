@@ -1,43 +1,33 @@
 import cv2
-from imutils.video import VideoStream
-import time
+import imutils
 import numpy as np
-import socket
+import subprocess
 
-# VLC 플레이어로 프레임을 전송하기 위한 IP 주소와 포트 번호
-VLC_HOST = "VLC_PLAYER_IP_ADDRESS"  # VLC 플레이어가 설치된 컴퓨터의 IP 주소
-VLC_PORT = 1234  # 프레임을 전송할 포트 번호
+# 비디오 스트리밍 설정
+video_stream = cv2.VideoCapture(0)  # 웹캠이나 비디오 파일의 경로를 지정할 수 있습니다.
+video_codec = cv2.VideoWriter_fourcc(*"XVID")  # 비디오 코덱 설정 (여기서는 XVID 사용)
 
-# 비디오 스트림 초기화
-vs = VideoStream(src=0).start()
-time.sleep(2.0)  # 카메라 초기화를 위해 잠시 대기
+# VLC 플레이어 실행 설정
+vlc_cmd = ['cvlc', '-']  # 비디오를 stdin으로부터 읽도록 VLC 실행 명령
 
-# 소켓 초기화
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.connect((VLC_HOST, VLC_PORT))
+# VLC 프로세스 시작
+vlc_process = subprocess.Popen(vlc_cmd, stdin=subprocess.PIPE)
 
 while True:
-    # 프레임 읽기
-    frame = vs.read()
-
-    # 프레임 크기 변경
-    frame = imutils.resize(frame, width=640)
-
-    # 프레임을 바이트로 변환
-    encoded_frame = cv2.imencode('.jpg', frame)[1].tobytes()
-
-    # 프레임 크기 정보 전송
-    frame_info = f"{len(encoded_frame)}".ljust(16).encode()
-    sock.sendall(frame_info)
-
-    # 프레임 데이터 전송
-    sock.sendall(encoded_frame)
-
-    # 'q' 키를 누르면 루프 종료
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    # 비디오 프레임 읽기
+    ret, frame = video_stream.read()
+    if not ret:
         break
 
-# 리소스 정리
-vs.stop()
-sock.close()
-cv2.destroyAllWindows()
+    # 프레임 인코딩
+    encoded_frame = cv2.imencode('.jpg', frame)[1]
+    frame_data = np.array(encoded_frame).tostring()
+
+    # 디코딩된 프레임 전송
+    vlc_process.stdin.write(frame_data)
+    vlc_process.stdin.flush()
+
+# 비디오 스트리밍 및 VLC 종료
+video_stream.release()
+vlc_process.stdin.close()
+vlc_process.wait()
