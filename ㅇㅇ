@@ -1,25 +1,29 @@
-# 이미지 전송을 위한 ImageSender 객체를 생성합니다.
-sender = imagezmq.ImageSender(connect_to="tcp://<VLC 플레이어 IP 주소>:5555")
+# 비디오 스트리밍 함수
+def video_stream():
+    # picamera 초기화
+    camera = picamera.PiCamera()
+    camera.resolution = (640, 480)
+    camera.framerate = 30
+    
+    # 비디오 스트리밍 시작
+    stream = io.BytesIO()
+    for _ in camera.capture_continuous(stream, format='jpeg', use_video_port=True):
+        # 스트림 데이터 읽기
+        frame = stream.getvalue()
+        
+        # 프레임 처리
+        frame = imutils.rotate(frame, angle=90)
+        
+        # VLC 플레이어에 프레임 전송
+        subprocess.Popen(vlc_cmd, stdin=subprocess.PIPE).stdin.write(frame)
+        
+        # 스트림 초기화
+        stream.seek(0)
+        stream.truncate()
 
-# VLC 플레이어로부터 이미지 수신을 처리할 수신자 객체를 생성합니다.
-receiver = imagezmq.ImageHub()
+        # 1초 대기
+        time.sleep(1)
 
-# 비디오 스트리밍 루프를 시작합니다.
-while True:
-    # 현재 프레임을 가져옵니다.
-    frame = vs.read()
-
-    # 현재 프레임을 복사하여 표시합니다.
-    frame_display = frame.copy()
-    cv2.imshow("Video Stream", frame_display)
-    cv2.waitKey(1)
-
-    # 프레임을 전송합니다.
-    sender.send_image(socket.gethostname(), frame)
-
-    # VLC 플레이어로부터 이미지 수신을 대기합니다.
-    (client_name, frame) = receiver.recv_image()
-
-    # 수신된 프레임을 디스플레이합니다.
-    cv2.imshow("Received Frame", frame)
-    cv2.waitKey(1)
+# 비디오 스트리밍 시작
+if __name__ == '__main__':
+    video_stream()
