@@ -1,21 +1,25 @@
-# 프레임을 ImageHub를 통해 전송
-    imageHub.send_image(socket.gethostname(), frame)
+# 이미지 전송을 위한 ImageSender 객체를 생성합니다.
+sender = imagezmq.ImageSender(connect_to="tcp://<VLC 플레이어 IP 주소>:5555")
 
-    # VLC 플레이어로부터 수신된 메시지 받기
-    message = imageHub.recv_message()
+# VLC 플레이어로부터 이미지 수신을 처리할 수신자 객체를 생성합니다.
+receiver = imagezmq.ImageHub()
 
-    # VLC 플레이어가 연결되었다는 확인 메시지 출력
-    if 'CONNECTED' in message:
-        print('VLC 플레이어와 연결되었습니다.')
+# 비디오 스트리밍 루프를 시작합니다.
+while True:
+    # 현재 프레임을 가져옵니다.
+    frame = vs.read()
 
-        # VLC 플레이어에 스트리밍 시작 메시지 전송
-        sender = imagezmq.ImageSender(connect_to=f'tcp://{receiver_ip}:{receiver_port}')
-        sender.send_message('STREAM_START')
+    # 현재 프레임을 복사하여 표시합니다.
+    frame_display = frame.copy()
+    cv2.imshow("Video Stream", frame_display)
+    cv2.waitKey(1)
 
-    # VLC 플레이어로부터 스트리밍 종료 메시지를 받으면 루프 종료
-    if 'STREAM_STOP' in message:
-        print('VLC 플레이어와의 연결이 종료되었습니다.')
-        break
+    # 프레임을 전송합니다.
+    sender.send_image(socket.gethostname(), frame)
 
-# 비디오 스트리밍 종료
-vs.stop()
+    # VLC 플레이어로부터 이미지 수신을 대기합니다.
+    (client_name, frame) = receiver.recv_image()
+
+    # 수신된 프레임을 디스플레이합니다.
+    cv2.imshow("Received Frame", frame)
+    cv2.waitKey(1)
