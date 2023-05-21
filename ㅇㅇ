@@ -1,28 +1,43 @@
-# ImageHub 초기화
-image_hub = imagezmq.ImageHub()
+import cv2
+from imutils.video import VideoStream
+import time
+import numpy as np
+import socket
 
-# VLC Player로부터의 연결 요청 대기
-sender = image_hub.zmq_socket.getsockopt_string(socket.SNDHWM)
-image_hub.zmq_socket.setsockopt_string(socket.SNDHWM, sender)
+# VLC 플레이어로 프레임을 전송하기 위한 IP 주소와 포트 번호
+VLC_HOST = "VLC_PLAYER_IP_ADDRESS"  # VLC 플레이어가 설치된 컴퓨터의 IP 주소
+VLC_PORT = 1234  # 프레임을 전송할 포트 번호
 
-# 무한 루프
+# 비디오 스트림 초기화
+vs = VideoStream(src=0).start()
+time.sleep(2.0)  # 카메라 초기화를 위해 잠시 대기
+
+# 소켓 초기화
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.connect((VLC_HOST, VLC_PORT))
+
 while True:
-    # 비디오 프레임 읽기
+    # 프레임 읽기
     frame = vs.read()
 
-    # 프레임을 ImageHub에 전송
-    image_hub.send_image(socket.gethostname(), frame)
+    # 프레임 크기 변경
+    frame = imutils.resize(frame, width=640)
 
-    # VLC Player로부터의 연결 수락
-    image_hub.recv_image()
+    # 프레임을 바이트로 변환
+    encoded_frame = cv2.imencode('.jpg', frame)[1].tobytes()
 
-    # 수신한 이미지를 화면에 표시
-    image_hub.send_reply(b'OK')
+    # 프레임 크기 정보 전송
+    frame_info = f"{len(encoded_frame)}".ljust(16).encode()
+    sock.sendall(frame_info)
 
-    # 'q' 키를 누르면 종료
+    # 프레임 데이터 전송
+    sock.sendall(encoded_frame)
+
+    # 'q' 키를 누르면 루프 종료
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# 비디오 스트리밍 종료
+# 리소스 정리
 vs.stop()
+sock.close()
 cv2.destroyAllWindows()
