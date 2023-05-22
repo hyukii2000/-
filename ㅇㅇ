@@ -1,33 +1,19 @@
-import cv2
-import imutils
-import numpy as np
-import subprocess
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
 
-# 비디오 스트리밍 설정
-video_stream = cv2.VideoCapture(0)  # 웹캠이나 비디오 파일의 경로를 지정할 수 있습니다.
-video_codec = cv2.VideoWriter_fourcc(*"XVID")  # 비디오 코덱 설정 (여기서는 XVID 사용)
+-D CMAKE_INSTALL_PREFIX=/usr/local \
 
-# VLC 플레이어 실행 설정
-vlc_cmd = ['cvlc', '-']  # 비디오를 stdin으로부터 읽도록 VLC 실행 명령
+-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
 
-# VLC 프로세스 시작
-vlc_process = subprocess.Popen(vlc_cmd, stdin=subprocess.PIPE)
+-D ENABLE_NEON=ON \
 
-while True:
-    # 비디오 프레임 읽기
-    ret, frame = video_stream.read()
-    if not ret:
-        break
+-D ENABLE_VFPV3=ON \
 
-    # 프레임 인코딩
-    encoded_frame = cv2.imencode('.jpg', frame)[1]
-    frame_data = np.array(encoded_frame).tostring()
+-D BUILD_TESTS=OFF \
 
-    # 디코딩된 프레임 전송
-    vlc_process.stdin.write(frame_data)
-    vlc_process.stdin.flush()
+-D INSTALL_PYTHON_EXAMPLES=OFF \
 
-# 비디오 스트리밍 및 VLC 종료
-video_stream.release()
-vlc_process.stdin.close()
-vlc_process.wait()
+-D OPENCV_ENABLE_NONFREE=ON \
+
+-D CMAKE_SHARED_LINKER_FLAGS=-latomic \
+
+-D BUILD_EXAMPLES=OFF ..
