@@ -48,43 +48,58 @@ SoftwareSerial BTserial ( 2 ,  3 ) ;  // RX | TX
 
 HC-06_01
 
-// 기본 블루투스 테스트 스케치. HC-06_01 
-// HC-06 ZS-040 
-// 
-// 
-// 하드웨어 시리얼을 사용하여 호스트 컴퓨터와 통신하고 블루투스 모듈과의 통신을 위한 소프트웨어 시리얼 
-// 
-// 핀 
-// BT VCC를 Arduino 5V 출력에 사용합니다. 
-// BT GND to GND 
-// BT RX to Arduino 핀 3(전압 분배기를 통해) 
-// BT TX to Arduino 핀 2(전압 분배기 필요 없음) 
-// 
-// 컴퓨터의 직렬 모니터에 명령이 입력될 때 
-// 아두이노는 이를 블루투스 모듈에 전달하고 결과를 표시합니다. 
-// 
-// 이 HC-06 모듈에는 대문자가 필요하고 줄 끝이 없어야 합니다. 
+// Basic Bluetooth sketch HC-05_02_38400
+// Connect the HC-05 module and communicate using the serial monitor
 //
+// The HC-05 defaults to commincation mode when first powered on.
+// Needs to be placed in to AT mode
+// After a factory reset the default baud rate for communication mode is 38400
+//
+//
+//  Pins
+//  BT VCC to Arduino 5V out. 
+//  BT GND to GND
+//  BT RX to Arduino pin 3 (through a voltage divider)
+//  BT TX to Arduino pin 2 (no need voltage divider)
  
-#include <SoftwareSerial.h> 
-SoftwareSerial BTSerial ( 2 ,  3 ) ;  // RX | 텍사스
  
-무효 설정 ( )  
-{ 
-  직렬. 시작 ( 9600 ) ; 
-  연속물. println ( "AT 명령어 입력:" ) ;
+#include <SoftwareSerial.h>
+SoftwareSerial BTserial(2, 3); // RX | TX
+// Connect the HC-05 TX to Arduino pin 2 RX. 
+// Connect the HC-05 RX to Arduino pin 3 TX through a voltage divider.
  
-  // HC-06 기본 전송 속도는 9600 
-  BTSerial입니다. 시작 ( 9600 ) ;   
+char c = ' ';
+ 
+void setup() 
+{
+    // start th serial communication with the host computer
+    Serial.begin(9600);
+    Serial.println("Arduino with HC-05 is ready");
+ 
+    // start communication with the HC-05 using 38400
+    BTserial.begin(38400);  
+    Serial.println("BTserial started at 38400");
 }
  
-무효 루프 ( ) 
+void loop()
 {
  
-  // HC-06에서 계속 읽고 아두이노 시리얼 모니터로 전송 
-  if  ( BTSerial. available ( ) ) 
-    Serial. 쓰기 ( BTSerial.read ( ) ) ; _
+     // Keep reading from HC-05 and send to Arduino Serial Monitor
+    if (BTserial.available())
+    {  
+        c = BTserial.read();
+        Serial.write(c);
+    }
  
-  // Arduino Serial Monitor에서 계속 읽고 HC-06으로 전송 
-  if  ( Serial. available ( ) ) 
-  BTSerial. 쓰기 ( Serial.read ( ) ) ; _ }
+    // Keep reading from Arduino Serial Monitor and send to HC-05
+    if (Serial.available())
+    {
+        c =  Serial.read();
+ 
+        // mirror the commands back to the serial monitor
+        // makes it easy to follow the commands
+        Serial.write(c);   
+        BTserial.write(c);  
+    }
+ 
+}
