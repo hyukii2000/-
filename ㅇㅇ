@@ -1,23 +1,90 @@
-cmake -D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=/usr/local \
--D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
--D ENABLE_NEON=ON \
--D ENABLE_VFPV3=ON \
--D BUILD_TESTS=OFF \
--D INSTALL_PYTHON_EXAMPLES=OFF \
--D OPENCV_ENABLE_NONFREE=ON \
--D CMAKE_SHARED_LINKER_FLAGS=-latomic \
--D BUILD_EXAMPLES=OFF ..
+HC-05_AT_MODE_01
 
-sudo apt-get update
-sudo apt-get install build-essential cmake pkg-config
-sudo apt-get install libjpeg-dev libtiff5-dev libjasper-dev libpng-dev
-sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
-sudo apt-get install libxvidcore-dev libx264-dev
-sudo apt-get install libfontconfig1-dev libcairo2-dev
-sudo apt-get install libgdk-pixbuf2.0-dev libpango1.0-dev
-sudo apt-get install libgtk2.0-dev libgtk-3-dev
-sudo apt-get install libatlas-base-dev gfortran
-sudo apt-get install libhdf5-dev libhdf5-serial-dev libhdf5-103
-sudo apt-get install libqtgui4 libqtwebkit4 libqt4-test python3-pyqt5
-sudo apt-get install python3-dev
+// 기본 블루투스 스케치 HC-05_AT_MODE_01 
+// HC-05 모듈을 연결하고 시리얼 모니터로 통신 
+// // HC-05는 처음 전원을 켰을 때 통신 모드로 기본 설정되어 있습니다. 수동으로 AT 
+모드 로 들어가야 합니다. 
+AT 모드의 전송 속도는 38400입니다. 
+// 자세한 내용은 www.martyncurrey.com을 참조하세요 
+. //
+ 
+ 
+#include <SoftwareSerial.h> 
+SoftwareSerial BTserial ( 2 ,  3 ) ;  // RX | TX 
+// HC-05 TX를 Arduino 핀 2 RX에 연결합니다. 
+// 전압 분배기를 통해 HC-05 RX를 Arduino 핀 3 TX에 연결합니다. 
+//
+ 
+문자 c =  ' ' ;
+ 
+무효 설정 ( )  
+{ 
+    직렬. 시작 ( 9600 ) ; 
+    연속물. println ( "아두이노가 준비되었습니다" ) ; 
+    연속물. println ( "직렬 모니터에서 NL & CR 모두 선택해야 함을 기억하십시오" ) ;
+ 
+    // AT 모드의 HC-05 기본 직렬 속도는 38400 
+    BTserial입니다. 시작 ( 38400 ) ;   
+}
+ 
+무효 루프 ( ) 
+{
+ 
+    // HC-05에서 계속 읽고 아두이노 시리얼 모니터로 전송 
+    if  ( BTserial. available ( ) ) 
+    {   
+        c = BTserial. 읽기 ( ) ; 
+        연속물. 쓰기 ( c ) ; 
+    }
+ 
+    // Arduino Serial Monitor에서 계속 읽고 HC-05로 전송 
+    if  ( Serial. available ( ) ) 
+    { 
+        c =   Serial. 읽기 ( ) ; 
+        BT직렬. 쓰기 ( c ) ;   
+    }
+ 
+}
+
+HC-06_01
+
+// 기본 블루투스 테스트 스케치. HC-06_01 
+// HC-06 ZS-040 
+// 
+// 
+// 하드웨어 시리얼을 사용하여 호스트 컴퓨터와 통신하고 블루투스 모듈과의 통신을 위한 소프트웨어 시리얼 
+// 
+// 핀 
+// BT VCC를 Arduino 5V 출력에 사용합니다. 
+// BT GND to GND 
+// BT RX to Arduino 핀 3(전압 분배기를 통해) 
+// BT TX to Arduino 핀 2(전압 분배기 필요 없음) 
+// 
+// 컴퓨터의 직렬 모니터에 명령이 입력될 때 
+// 아두이노는 이를 블루투스 모듈에 전달하고 결과를 표시합니다. 
+// 
+// 이 HC-06 모듈에는 대문자가 필요하고 줄 끝이 없어야 합니다. 
+//
+ 
+#include <SoftwareSerial.h> 
+SoftwareSerial BTSerial ( 2 ,  3 ) ;  // RX | 텍사스
+ 
+무효 설정 ( )  
+{ 
+  직렬. 시작 ( 9600 ) ; 
+  연속물. println ( "AT 명령어 입력:" ) ;
+ 
+  // HC-06 기본 전송 속도는 9600 
+  BTSerial입니다. 시작 ( 9600 ) ;   
+}
+ 
+무효 루프 ( ) 
+{
+ 
+  // HC-06에서 계속 읽고 아두이노 시리얼 모니터로 전송 
+  if  ( BTSerial. available ( ) ) 
+    Serial. 쓰기 ( BTSerial.read ( ) ) ; _
+ 
+  // Arduino Serial Monitor에서 계속 읽고 HC-06으로 전송 
+  if  ( Serial. available ( ) ) 
+  BTSerial. 쓰기 ( Serial.read ( ) ) ; _ }
