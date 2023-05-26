@@ -1,105 +1,88 @@
-HC-05_AT_MODE_01
+import io
+import picamera
+import logging
+import socketserver
+from threading import Condition
+from http import server
 
-// 기본 블루투스 스케치 HC-05_AT_MODE_01 
-// HC-05 모듈을 연결하고 시리얼 모니터로 통신 
-// // HC-05는 처음 전원을 켰을 때 통신 모드로 기본 설정되어 있습니다. 수동으로 AT 
-모드 로 들어가야 합니다. 
-AT 모드의 전송 속도는 38400입니다. 
-// 자세한 내용은 www.martyncurrey.com을 참조하세요 
-. //
- 
- 
-#include <SoftwareSerial.h> 
-SoftwareSerial BTserial ( 2 ,  3 ) ;  // RX | TX 
-// HC-05 TX를 Arduino 핀 2 RX에 연결합니다. 
-// 전압 분배기를 통해 HC-05 RX를 Arduino 핀 3 TX에 연결합니다. 
-//
- 
-문자 c =  ' ' ;
- 
-무효 설정 ( )  
-{ 
-    직렬. 시작 ( 9600 ) ; 
-    연속물. println ( "아두이노가 준비되었습니다" ) ; 
-    연속물. println ( "직렬 모니터에서 NL & CR 모두 선택해야 함을 기억하십시오" ) ;
- 
-    // AT 모드의 HC-05 기본 직렬 속도는 38400 
-    BTserial입니다. 시작 ( 38400 ) ;   
-}
- 
-무효 루프 ( ) 
-{
- 
-    // HC-05에서 계속 읽고 아두이노 시리얼 모니터로 전송 
-    if  ( BTserial. available ( ) ) 
-    {   
-        c = BTserial. 읽기 ( ) ; 
-        연속물. 쓰기 ( c ) ; 
-    }
- 
-    // Arduino Serial Monitor에서 계속 읽고 HC-05로 전송 
-    if  ( Serial. available ( ) ) 
-    { 
-        c =   Serial. 읽기 ( ) ; 
-        BT직렬. 쓰기 ( c ) ;   
-    }
- 
-}
+PAGE="""\
+<html>
+<head>
+<title>picamera MJPEG streaming demo</title>
+</head>
+<body>
+<h1>PiCamera MJPEG Streaming Demo</h1>
+<img src="stream.mjpg" width="640" height="480" />
+</body>
+</html>
+"""
 
-HC-06_01
+class StreamingOutput(object):
+    def __init__(self):
+        self.frame = None
+        self.buffer = io.BytesIO()
+        self.condition = Condition()
 
-// Basic Bluetooth sketch HC-05_02_38400
-// Connect the HC-05 module and communicate using the serial monitor
-//
-// The HC-05 defaults to commincation mode when first powered on.
-// Needs to be placed in to AT mode
-// After a factory reset the default baud rate for communication mode is 38400
-//
-//
-//  Pins
-//  BT VCC to Arduino 5V out. 
-//  BT GND to GND
-//  BT RX to Arduino pin 3 (through a voltage divider)
-//  BT TX to Arduino pin 2 (no need voltage divider)
- 
- 
-#include <SoftwareSerial.h>
-SoftwareSerial BTserial(2, 3); // RX | TX
-// Connect the HC-05 TX to Arduino pin 2 RX. 
-// Connect the HC-05 RX to Arduino pin 3 TX through a voltage divider.
- 
-char c = ' ';
- 
-void setup() 
-{
-    // start th serial communication with the host computer
-    Serial.begin(9600);
-    Serial.println("Arduino with HC-05 is ready");
- 
-    // start communication with the HC-05 using 38400
-    BTserial.begin(38400);  
-    Serial.println("BTserial started at 38400");
-}
- 
-void loop()
-{
- 
-     // Keep reading from HC-05 and send to Arduino Serial Monitor
-    if (BTserial.available())
-    {  
-        c = BTserial.read();
-        Serial.write(c);
-    }
- 
-    // Keep reading from Arduino Serial Monitor and send to HC-05
-    if (Serial.available())
-    {
-        c =  Serial.read();
- 
-        // mirror the commands back to the serial monitor
-        // makes it easy to follow the commands
-        Serial.write(c);   
-        BTserial.write(c);  
-    }
- 
-}
+    def write(self, buf):
+        if buf.startswith(b'\xff\xd8'):
+            # New frame, copy the existing buffer's content and notify all
+            # clients it's available
+            self.buffer.truncate()
+            with self.condition:
+                self.frame = self.buffer.getvalue()
+                self.condition.notify_all()
+            self.buffer.seek(0)
+        return self.buffer.write(buf)
+
+class StreamingHandler(server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/':
+            self.send_response(301)
+            self.send_header('Location', '/index.html')
+            self.end_headers()
+        elif self.path == '/index.html':
+            content = PAGE.encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/html')
+            self.send_header('Content-Length', len(content))
+            self.end_headers()
+            self.wfile.write(content)
+        elif self.path == '/stream.mjpg':
+            self.send_response(200)
+            self.send_header('Age', 0)
+            self.send_header('Cache-Control', 'no-cache, private')
+            self.send_header('Pragma', 'no-cache')
+            self.send_header('Content-Type', 'multipart/x-mixed-replace; boundary=FRAME')
+            self.end_headers()
+            try:
+                while True:
+                    with output.condition:
+                        output.condition.wait()
+                        frame = output.frame
+                    self.wfile.write(b'--FRAME\r\n')
+                    self.send_header('Content-Type', 'image/jpeg')
+                    self.send_header('Content-Length', len(frame))
+                    self.end_headers()
+                    self.wfile.write(frame)
+                    self.wfile.write(b'\r\n')
+            except Exception as e:
+                logging.warning(
+                    'Removed streaming client %s: %s',
+                    self.client_address, str(e))
+        else:
+            self.send_error(404)
+            self.end_headers()
+
+class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+with picamera.PiCamera(resolution='640x480', framerate=24) as camera:
+    output = StreamingOutput()
+    camera.start_recording(output, format='mjpeg')
+    try:
+        address = ('', 8000)
+        server = StreamingServer(address, StreamingHandler)
+        server.serve_forever()
+    finally:
+        camera.stop_recording()
