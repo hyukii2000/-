@@ -1,0 +1,34 @@
+import serial
+import time
+import os
+
+bluetooth_port = '/dev/rfcomm0'  # 블루투스 포트 이름
+arduino_baudrate = 9600
+
+def connect_bluetooth():
+    while True:
+        try:
+            bluetooth = serial.Serial(bluetooth_port, arduino_baudrate)
+            print("Bluetooth connected")
+            return bluetooth
+        except serial.serialutil.SerialException:
+            print("Bluetooth connection failed. Retrying...")
+            time.sleep(1)
+
+def play_music():
+    # 음악 재생에 필요한 코드 작성
+    # 예: os.system("mpg123 music.mp3")
+    pass
+
+def main():
+    bluetooth = connect_bluetooth()
+    
+    while True:
+        data = bluetooth.readline().decode().strip()
+        print(data)
+        
+        if data == "play":
+            play_music()
+
+if __name__ == "__main__":
+    main()
